@@ -2,7 +2,7 @@ name: Java CI with Maven
 
 on:
   push:
-    branches:
+    branches: 
       - main
     paths:
       - 'TicTacToe/**'  # Trigger on any changes within the TicTacToe directory
