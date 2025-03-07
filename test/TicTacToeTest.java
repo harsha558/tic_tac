@@ -6,7 +6,7 @@ public class TicTacToeTest {
 
     private TicTacToe game;
 
-    @BeforeEach
+    @BeforeEach 
     void setUp() {
         game = new TicTacToe('X'); // Or 'O', doesn't matter for these tests
     }

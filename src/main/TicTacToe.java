@@ -23,7 +23,7 @@ public class TicTacToe extends JFrame implements ActionListener {
                 buttons[i][j].addActionListener(this);
                 add(buttons[i][j]);
             }
-        }
+        } 
         
         setVisible(true);
     }
