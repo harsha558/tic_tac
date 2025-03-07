@@ -1,73 +1,114 @@
-image: maven:3.9.6-openjdk-17
+name: Java CI with Maven
 
-stages:
-  - build
-  - test
-  - package  # Optional: If you want to create a deployable artifact
+on:
+  push:
+    branches:
+      - main  # Trigger on pushes to the main branch
+  pull_request:
+    branches:
+      - main  # Trigger on pull requests targeting the main branch
+  workflow_dispatch:  # Enable manual triggering of the workflow
 
-variables:
-  MAVEN_CLI_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener.level=warn"
-  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-cache:
-  paths:
-    - .m2/repository
-    - target/
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-before_script:
-  - echo "Starting CI pipeline..."
-  - java -version
-  - mvn -version
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'  # Or 'adopt' if you prefer
 
-build:
-  stage: build
-  script:
-    - echo "Building the project..."
-    - mvn clean compile # Compile code only, faster for just checking compilation
-  artifacts:
-    paths:
-      - target/*.class # Save compiled class files for faster testing
-    expire_in: 1 hour
+      - name: Cache Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
 
-test:
-  stage: test
-  script:
-    - echo "Running tests..."
-    - mvn test # Run the tests
-  dependencies:
-    - build # Ensure build completes before running tests
-  artifacts:
-    reports:
-      junit: target/surefire-reports/TEST-*.xml # Capture JUnit test reports
-    paths:
-      - target/ # Save the entire target directory for potential analysis
-    expire_in: 1 hour
-  coverage: '/Total.*?([0-9]{1,3})%/' # Example regex for coverage parsing (adjust as needed)
+      - name: Build with Maven
+        run: mvn clean compile
 
-package:
-  stage: package
-  script:
-    - echo "Packaging the application..."
-    - mvn clean package -DskipTests # Create a JAR file (or other package)
-  dependencies:
-    - test  # Ensure tests pass before packaging
-  artifacts:
-    paths:
-      - target/*.jar  # Save the JAR file
-    expire_in: 7 days
-  only:
-    - main # Or your main branch name
+  test:
+    needs: build  # Ensure 'build' job completes before 'test'
+    runs-on: ubuntu-latest
 
-# Optional: Deploy stage (example)
-#deploy:
-#  stage: deploy
-#  script:
-#    - echo "Deploying the application..."
-#    # Add deployment commands here (e.g., deploy to a server)
-#  dependencies:
-#    - package
-#  only:
-#    - main # Or your main branch name
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-after_script:
-  - echo "CI pipeline completed."
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Restore Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Test with Maven
+        run: mvn test
+
+      - name: Upload Test Results
+        uses: actions/upload-artifact@v3
+        if: always()  # Run even if tests fail
+        with:
+          name: surefire-reports
+          path: target/surefire-reports
+
+  package:
+    needs: test  # Ensure 'test' job completes successfully
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Restore Maven dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: Package with Maven
+        run: mvn clean package -DskipTests  # Skip tests, they ran in the 'test' job
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: packaged-jar
+          path: target/*.jar
+
+# Example deployment stage (customize as needed)
+#  deploy:
+#    needs: package
+#    runs-on: ubuntu-latest
+#    steps:
+#      - name: Download JAR artifact
+#        uses: actions/download-artifact@v3
+#        with:
+#          name: packaged-jar
+#          path: .
+#
+#      - name: Deploy to some environment
+#        run: |
+#          echo "Add deployment steps here"
+#          # Example: scp target/*.jar user@server:/path/to/deploy/
