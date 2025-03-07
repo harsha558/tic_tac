@@ -2,9 +2,16 @@ name: Java CI Pipeline
 
 on:
   push:
-    branches: [ main ]
+    branches: 
+    - main
+    - TicTacToe.java
+    - TicTacToeTest.java
+
   pull_request:
-    branches: [ main ]
+    branches: 
+    - main
+    - TicTacToe.java
+    - TicTacToeTest.java
 
 jobs:
   build-and-test:

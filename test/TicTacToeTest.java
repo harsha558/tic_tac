@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class TicTacToeTest {
 
-    private TicTacToe game;
+    private TicTacToe game; 
 
     @BeforeEach 
     void setUp() {

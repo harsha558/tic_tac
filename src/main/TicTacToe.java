@@ -15,7 +15,7 @@ public class TicTacToe extends JFrame implements ActionListener {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new GridLayout(3, 3));
         
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) { 
             for (int j = 0; j < 3; j++) {
                 buttons[i][j] = new JButton(" ");
                 buttons[i][j].setFont(new Font("Arial", Font.PLAIN, 60));
