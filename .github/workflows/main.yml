@@ -1,0 +1,73 @@
+image: maven:3.9.6-openjdk-17
+
+stages:
+  - build
+  - test
+  - package  # Optional: If you want to create a deployable artifact
+
+variables:
+  MAVEN_CLI_OPTS: "-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener.level=warn"
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+
+cache:
+  paths:
+    - .m2/repository
+    - target/
+
+before_script:
+  - echo "Starting CI pipeline..."
+  - java -version
+  - mvn -version
+
+build:
+  stage: build
+  script:
+    - echo "Building the project..."
+    - mvn clean compile # Compile code only, faster for just checking compilation
+  artifacts:
+    paths:
+      - target/*.class # Save compiled class files for faster testing
+    expire_in: 1 hour
+
+test:
+  stage: test
+  script:
+    - echo "Running tests..."
+    - mvn test # Run the tests
+  dependencies:
+    - build # Ensure build completes before running tests
+  artifacts:
+    reports:
+      junit: target/surefire-reports/TEST-*.xml # Capture JUnit test reports
+    paths:
+      - target/ # Save the entire target directory for potential analysis
+    expire_in: 1 hour
+  coverage: '/Total.*?([0-9]{1,3})%/' # Example regex for coverage parsing (adjust as needed)
+
+package:
+  stage: package
+  script:
+    - echo "Packaging the application..."
+    - mvn clean package -DskipTests # Create a JAR file (or other package)
+  dependencies:
+    - test  # Ensure tests pass before packaging
+  artifacts:
+    paths:
+      - target/*.jar  # Save the JAR file
+    expire_in: 7 days
+  only:
+    - main # Or your main branch name
+
+# Optional: Deploy stage (example)
+#deploy:
+#  stage: deploy
+#  script:
+#    - echo "Deploying the application..."
+#    # Add deployment commands here (e.g., deploy to a server)
+#  dependencies:
+#    - package
+#  only:
+#    - main # Or your main branch name
+
+after_script:
+  - echo "CI pipeline completed."
