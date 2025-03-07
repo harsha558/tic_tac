@@ -3,112 +3,62 @@ name: Java CI with Maven
 on:
   push:
     branches:
-      - main  # Trigger on pushes to the main branch
+      - main
   pull_request:
     branches:
-      - main  # Trigger on pull requests targeting the main branch
-  workflow_dispatch:  # Enable manual triggering of the workflow
+      - main
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'  # Or 'adopt' if you prefer
-
-      - name: Cache Maven dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: Build with Maven
-        run: mvn clean compile
-
-  test:
-    needs: build  # Ensure 'build' job completes before 'test'
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-
-      - name: Restore Maven dependencies
-        uses: actions/cache@v3
+      - uses: actions/cache@v3
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
+      - run: mvn clean compile
 
-      - name: Test with Maven
-        run: mvn test
-
-      - name: Upload Test Results
-        uses: actions/upload-artifact@v3
-        if: always()  # Run even if tests fail
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+      - run: mvn test
+      - uses: actions/upload-artifact@v3  # CORRECTED LINE
+        if: always()
         with:
           name: surefire-reports
           path: target/surefire-reports
 
   package:
-    needs: test  # Ensure 'test' job completes successfully
+    needs: test
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
-
-      - name: Restore Maven dependencies
-        uses: actions/cache@v3
+      - uses: actions/cache@v3
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: Package with Maven
-        run: mvn clean package -DskipTests  # Skip tests, they ran in the 'test' job
-
-      - name: Upload JAR artifact
-        uses: actions/upload-artifact@v3
+      - run: mvn clean package -DskipTests
+      - uses: actions/upload-artifact@v3  # CORRECTED LINE
         with:
           name: packaged-jar
           path: target/*.jar
-
-# Example deployment stage (customize as needed)
-#  deploy:
-#    needs: package
-#    runs-on: ubuntu-latest
-#    steps:
-#      - name: Download JAR artifact
-#        uses: actions/download-artifact@v3
-#        with:
-#          name: packaged-jar
-#          path: .
-#
-#      - name: Deploy to some environment
-#        run: |
-#          echo "Add deployment steps here"
-#          # Example: scp target/*.jar user@server:/path/to/deploy/
