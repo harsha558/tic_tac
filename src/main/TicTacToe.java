@@ -8,7 +8,7 @@ public class TicTacToe extends JFrame implements ActionListener {
     private char currentPlayer;
     
     public TicTacToe(char chosenPlayer) {
-        this.currentPlayer = chosenPlayer; 
+        this.currentPlayer = chosenPlayer;  
         
         setTitle("Tic-Tac-Toe");
         setSize(300, 300);
